@@ -104,7 +104,19 @@ st.caption("Goods Code, Origin/Destination, Date sütunlarını Excel'den kopyal
 pasted = st.text_area("Buraya yapıştırın", height=120, placeholder="0101210000\tTR\t18-05-2026\n0202100000\tDE\t18-05-2026")
 
 import pandas as pd
+import json
 from io import StringIO
+
+@st.cache_resource
+def load_ulkeler():
+    with open("ulkeler.json", "r", encoding="utf-8") as f:
+        return json.load(f)
+
+ulkeler = load_ulkeler()
+
+def ulke_kodu(ulke_adi: str) -> str:
+    key = ulke_adi.strip().upper()
+    return ulkeler.get(key, ulke_adi.strip())
 
 df = None
 if pasted.strip():
@@ -112,7 +124,7 @@ if pasted.strip():
         df = pd.read_csv(StringIO(pasted.strip()), sep="\t", header=None,
                          names=["Goods Code", "Origin/Destination", "Date"])
         df["Goods Code"] = df["Goods Code"].astype(str).str.strip()
-        df["Origin/Destination"] = df["Origin/Destination"].astype(str).str.strip()
+        df["Origin/Destination"] = df["Origin/Destination"].astype(str).str.apply(ulke_kodu)
         df["Date"] = df["Date"].astype(str).str.strip()
         st.dataframe(df, use_container_width=True)
     except Exception as e:
