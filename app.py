@@ -123,7 +123,7 @@ if pasted.strip():
     try:
         df = pd.read_csv(StringIO(pasted.strip()), sep="\t", header=None,
                          names=["Goods Code", "Origin/Destination", "Date"])
-        df["Goods Code"] = df["Goods Code"].astype(str).str.strip()
+        df["Goods Code"] = df["Goods Code"].astype(str).str.strip().str.replace(".", "", regex=False).str[:10]
         df["Origin/Destination"] = df["Origin/Destination"].astype(str).apply(ulke_kodu)
         df["Date"] = df["Date"].astype(str).str.strip()
         st.dataframe(df, use_container_width=True)
