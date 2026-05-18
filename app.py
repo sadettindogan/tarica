@@ -35,7 +35,7 @@ def search_taric(goods_code: str, country_code: str, sim_date: str):
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=True,
+            headless=False,
             args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
         )
         page = browser.new_page(viewport={"width": 1280, "height": 900})
