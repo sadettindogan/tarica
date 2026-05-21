@@ -76,7 +76,7 @@ def link_button(label: str, url: str, key: str):
     """, height=50)
 
 # Session state
-for k, v in [("current_index", 0), ("running", False), ("df", None)]:
+for k, v in [("current_index", 0), ("running", False), ("df", None), ("last_pasted", "")]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -88,25 +88,29 @@ pasted = st.text_area(
     placeholder="0101210000\tTR\t1.01.2024\n0202100000\tDE\t1.01.2024"
 )
 
-if pasted.strip():
+# Sadece içerik değiştiğinde parse et — her rerun'da index sıfırlanmasın
+if pasted.strip() and pasted.strip() != st.session_state.last_pasted:
     try:
-        df = pd.read_csv(
+        df_new = pd.read_csv(
             StringIO(pasted.strip()), sep="\t", header=None,
             names=["Goods Code", "Origin/Destination", "Date"]
         )
-        df["Goods Code"] = (
-            df["Goods Code"].astype(str).str.strip()
+        df_new["Goods Code"] = (
+            df_new["Goods Code"].astype(str).str.strip()
             .str.replace(".", "", regex=False).str[:10]
         )
-        df["Origin/Destination"] = df["Origin/Destination"].astype(str).apply(ulke_kodu)
-        df["Date"] = df["Date"].astype(str).str.strip()
-        df.insert(0, "Veri No", range(1, len(df) + 1))
-        st.session_state.df = df
+        df_new["Origin/Destination"] = df_new["Origin/Destination"].astype(str).apply(ulke_kodu)
+        df_new["Date"] = df_new["Date"].astype(str).str.strip()
+        df_new.insert(0, "Veri No", range(1, len(df_new) + 1))
+        st.session_state.df = df_new
         st.session_state.current_index = 0
         st.session_state.running = True
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.session_state.last_pasted = pasted.strip()
     except Exception as e:
         st.error(f"Yapıştırma hatası: {e}")
+
+if st.session_state.df is not None:
+    st.dataframe(st.session_state.df, use_container_width=True, hide_index=True)
 
 df = st.session_state.df
 
