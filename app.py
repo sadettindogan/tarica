@@ -1,6 +1,4 @@
 import streamlit as st
-import subprocess
-import sys
 import pandas as pd
 import json
 from io import StringIO
@@ -23,21 +21,25 @@ def ulke_kodu(ulke_adi: str) -> str:
     key = ulke_adi.strip().upper()
     return ulkeler.get(key, ulke_adi.strip())
 
-def parse_date(date_str: str) -> str:
-    """Tarihi YYYYMMDD formatına çevirir."""
+def parse_date_yyyymmdd(date_str: str) -> str:
     date_str = date_str.strip()
     for fmt in ["%d.%m.%Y", "%d/%m/%Y", "%Y-%m-%d", "%m/%d/%Y", "%d-%m-%Y"]:
         try:
             return datetime.strptime(date_str, fmt).strftime("%Y%m%d")
         except ValueError:
             pass
-    return date_str  # dönüştürülemezse olduğu gibi bırak
+    return date_str
 
-def build_taric_url(goods_code: str, country_code: str, date_str: str) -> str:
+def build_url(goods_code: str, country_code: str, date_str: str) -> str:
+    """
+    Retrieve Measures butonuna basılmış gibi doğrudan sonuç sayfasına giden URL.
+    action=retrieve parametresi TARIC'e formu gönderilmiş gibi davranmasını söyler.
+    """
     params = {
         "Lang": "en",
         "Taric": goods_code.strip(),
-        "SimDate": parse_date(date_str),
+        "SimDate": parse_date_yyyymmdd(date_str),
+        "action": "retrieve",
     }
     if country_code and country_code.strip() not in ("", "----------"):
         params["Area"] = country_code.strip()
@@ -81,7 +83,6 @@ if pasted.strip():
 
 df = st.session_state.df
 
-# Sorgulama arayüzü
 if st.session_state.running and df is not None:
     i = st.session_state.current_index
     row = df.iloc[i]
@@ -94,15 +95,31 @@ if st.session_state.running and df is not None:
     col1, col2 = st.columns(2)
 
     with col1:
-        url = build_taric_url(goods, country, tarih)
-        # JavaScript ile yeni sekmede aç + sonraki sorguya geç
         if st.button(f"🔍 Sorgula ({goods})", key=f"sorgula_{i}"):
-            # Linki session'a kaydet, sayfayı yenile
-            st.session_state[f"url_{i}"] = url
+            url = build_url(goods, country, tarih)
+
+            # Yeni sekmede aç
+            # window.open popup blocker'dan kaçmak için <a> + click() yöntemi
+            js = f"""
+            <script>
+            (function() {{
+                var a = document.createElement('a');
+                a.href = "{url}";
+                a.target = "_blank";
+                a.rel = "noopener noreferrer";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }})();
+            </script>
+            """
+            st.components.v1.html(js, height=0)
+
             if i + 1 < len(df):
                 st.session_state.current_index += 1
             else:
                 st.session_state.running = False
+
             st.rerun()
 
     with col2:
@@ -111,17 +128,5 @@ if st.session_state.running and df is not None:
             st.warning("Durduruldu.")
             st.rerun()
 
-    # Butona basıldıktan sonra URL varsa göster ve otomatik aç
-    if f"url_{i}" in st.session_state:
-        url = st.session_state[f"url_{i}"]
-        st.success(f"✅ `{goods}` sorgusu hazır!")
-        # JavaScript ile yeni sekmede otomatik aç
-        st.components.v1.html(
-            f"""<script>window.open("{url}", "_blank");</script>
-            <p>Otomatik açılmazsa: <a href="{url}" target="_blank">buraya tıklayın</a></p>""",
-            height=40,
-        )
-
-# Tamamlandı mesajı
 if not st.session_state.running and df is not None and st.session_state.current_index >= len(df):
     st.success("🎉 Tüm sorgular tamamlandı!")
