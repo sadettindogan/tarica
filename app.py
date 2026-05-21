@@ -21,29 +21,46 @@ def ulke_kodu(ulke_adi: str) -> str:
     key = ulke_adi.strip().upper()
     return ulkeler.get(key, ulke_adi.strip())
 
-def parse_date_yyyymmdd(date_str: str) -> str:
-    date_str = date_str.strip()
+def parse_date(date_str: str) -> str:
     for fmt in ["%d.%m.%Y", "%d/%m/%Y", "%Y-%m-%d", "%m/%d/%Y", "%d-%m-%Y"]:
         try:
-            return datetime.strptime(date_str, fmt).strftime("%Y%m%d")
+            return datetime.strptime(date_str.strip(), fmt).strftime("%Y%m%d")
         except ValueError:
             pass
-    return date_str
+    return date_str.strip()
 
 def build_url(goods_code: str, country_code: str, date_str: str) -> str:
-    """
-    Retrieve Measures butonuna basılmış gibi doğrudan sonuç sayfasına giden URL.
-    action=retrieve parametresi TARIC'e formu gönderilmiş gibi davranmasını söyler.
-    """
     params = {
         "Lang": "en",
         "Taric": goods_code.strip(),
-        "SimDate": parse_date_yyyymmdd(date_str),
+        "SimDate": parse_date(date_str),
         "action": "retrieve",
     }
     if country_code and country_code.strip() not in ("", "----------"):
         params["Area"] = country_code.strip()
     return BASE_URL + "?" + urlencode(params)
+
+def link_button(label: str, url: str, key: str):
+    """Streamlit'e bağımlı olmayan, yeni sekmede açılan tıklanabilir buton."""
+    btn_id = f"btn_{key}"
+    st.components.v1.html(f"""
+    <style>
+      #{btn_id} {{
+        display: inline-block;
+        padding: 8px 18px;
+        background-color: #FF4B4B;
+        color: white !important;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 6px;
+        text-decoration: none;
+        font-family: sans-serif;
+        cursor: pointer;
+      }}
+      #{btn_id}:hover {{ background-color: #cc3333; }}
+    </style>
+    <a id="{btn_id}" href="{url}" target="_blank" rel="noopener noreferrer">{label}</a>
+    """, height=50)
 
 # Session state
 if "current_index" not in st.session_state:
@@ -92,41 +109,30 @@ if st.session_state.running and df is not None:
 
     st.info(f"**Sıradaki sorgu [{i+1}/{len(df)}]:** `{goods}` / `{country}` / `{tarih}`")
 
-    col1, col2 = st.columns(2)
+    url = build_url(goods, country, tarih)
+
+    col1, col2, col3 = st.columns([3, 2, 2])
 
     with col1:
-        if st.button(f"🔍 Sorgula ({goods})", key=f"sorgula_{i}"):
-            url = build_url(goods, country, tarih)
+        # Doğrudan <a> linki — Streamlit'e gerek yok, tıklayınca anında açılır
+        link_button(f"🔍 Sorgula ({goods})", url, key=f"link_{i}")
 
-            # Yeni sekmede aç
-            # window.open popup blocker'dan kaçmak için <a> + click() yöntemi
-            js = f"""
-            <script>
-            (function() {{
-                var a = document.createElement('a');
-                a.href = "{url}";
-                a.target = "_blank";
-                a.rel = "noopener noreferrer";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            }})();
-            </script>
-            """
-            st.components.v1.html(js, height=0)
-
+    with col2:
+        # Sonraki satıra geç (opsiyonel, link açıldıktan sonra basılır)
+        if st.button("⏭ Sonraki", key=f"next_{i}"):
             if i + 1 < len(df):
                 st.session_state.current_index += 1
             else:
                 st.session_state.running = False
-
             st.rerun()
 
-    with col2:
+    with col3:
         if st.button("⏹ Durdur", key="durdur"):
             st.session_state.running = False
             st.warning("Durduruldu.")
             st.rerun()
+
+    st.caption(f"🔗 URL: `{url}`")
 
 if not st.session_state.running and df is not None and st.session_state.current_index >= len(df):
     st.success("🎉 Tüm sorgular tamamlandı!")
