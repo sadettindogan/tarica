@@ -10,6 +10,20 @@ BASE_URL = "https://ec.europa.eu/taxation_customs/dds2/taric/taric_consultation.
 st.set_page_config(page_title="TARIC", page_icon="🇪🇺")
 st.title("🇪🇺 TARIC Consultation")
 
+st.markdown("""
+<style>
+  div.stButton > button[kind="primary"] {
+    background-color: #21c45d !important;
+    border-color: #21c45d !important;
+    color: white !important;
+  }
+  div.stButton > button[kind="primary"]:hover {
+    background-color: #16a34a !important;
+    border-color: #16a34a !important;
+  }
+</style>
+""", unsafe_allow_html=True)
+
 @st.cache_resource
 def load_ulkeler():
     with open("ulkeler.json", "r", encoding="utf-8") as f:
