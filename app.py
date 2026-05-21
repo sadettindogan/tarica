@@ -47,7 +47,7 @@ def link_button(label: str, url: str, key: str):
       #{btn_id} {{
         display: inline-block;
         padding: 8px 18px;
-        background-color: #FF4B4B;
+        background-color: #21c45d;
         color: white !important;
         font-size: 15px;
         font-weight: 600;
@@ -56,7 +56,7 @@ def link_button(label: str, url: str, key: str):
         font-family: sans-serif;
         cursor: pointer;
       }}
-      #{btn_id}:hover {{ background-color: #cc3333; }}
+      #{btn_id}:hover {{ background-color: #16a34a; }}
     </style>
     <a id="{btn_id}" href="{url}" target="_blank" rel="noopener noreferrer">{label}</a>
     """, height=50)
@@ -86,10 +86,11 @@ if pasted.strip():
         )
         df["Origin/Destination"] = df["Origin/Destination"].astype(str).apply(ulke_kodu)
         df["Date"] = df["Date"].astype(str).str.strip()
+        df.insert(0, "Veri No", range(1, len(df) + 1))
         st.session_state.df = df
         st.session_state.current_index = 0
         st.session_state.running = True
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True, hide_index=True)
     except Exception as e:
         st.error(f"Yapıştırma hatası: {e}")
 
@@ -106,9 +107,7 @@ if st.session_state.running and df is not None:
     st.divider()
 
     # Progress bar
-    st.progress((i + 1) / total, text=f"Sorgu {i + 1} / {total}")
-
-    st.info(f"**Goods Code:** `{goods}`  |  **Ülke:** `{country}`  |  **Tarih:** `{tarih}`")
+    st.progress((i + 1) / total, text=f"Veri No: {i + 1} / {total}")
 
     url = build_url(goods, country, tarih)
 
