@@ -2,24 +2,30 @@ name: Streamlit Keep Alive
 
 on:
   schedule:
+    # Her 6 saatte bir çalışır (Gerekirse '0 */2 * * *' yaparak 2 saatte bire düşürebilirsiniz)
     - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-    - name: Ping Streamlit App
-      run: curl -I https://tarica.streamlit.app
+      - name: Ping Streamlit App
+        run: |
+          curl -sL "https://tarica.streamlit.app" > /dev/null
+          # Streamlit uyanma/health check isteği
+          curl -sL "https://tarica.streamlit.app/_stcore/health" > /dev/null
 
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Keep GitHub Repo Active
-      run: |
-        date > keep_alive.txt
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add keep_alive.txt
-        git commit -m "Keep-alive update: $(date)"
-        git push
+      - name: Keep GitHub Repo Active
+        run: |
+          date > keep_alive.txt
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add keep_alive.txt
+          git commit -m "Keep-alive update: $(date)" || exit 0
+          git push
