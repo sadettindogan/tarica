@@ -2,7 +2,6 @@ name: Streamlit Keep Alive
 
 on:
   schedule:
-    # Her 6 saatte bir çalışır (Gerekirse '0 */2 * * *' yaparak 2 saatte bire düşürebilirsiniz)
     - cron: '0 */6 * * *'
   workflow_dispatch:
 
@@ -14,9 +13,8 @@ jobs:
     steps:
       - name: Ping Streamlit App
         run: |
-          curl -sL "https://tarica.streamlit.app" > /dev/null
-          # Streamlit uyanma/health check isteği
-          curl -sL "https://tarica.streamlit.app/_stcore/health" > /dev/null
+          # || true ekleyerek curl hata verse bile workflow'un patlamasını önlüyoruz
+          curl -s -L --max-redirs 5 "https://tarica.streamlit.app" || true
 
       - name: Checkout Repository
         uses: actions/checkout@v3
